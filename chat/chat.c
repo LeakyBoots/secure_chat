@@ -10,6 +10,8 @@
 #include "dh.h"
 #include "keys.h"
 
+#include "aes.c"
+
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
@@ -142,6 +144,9 @@ static void tsappend(char* message, char** tagnames, int ensurenewline)
 	gtk_text_buffer_delete_mark(tbuf,mark);
 }
 
+// unsigned char key[32];
+// unsigned char iv[16];
+
 static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* data */)
 {
 	char* tags[2] = {"self",NULL};
@@ -152,6 +157,36 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	gtk_text_buffer_get_end_iter(mbuf,&mend);
 	char* message = gtk_text_buffer_get_text(mbuf,&mstart,&mend,1);
 	size_t len = g_utf8_strlen(message,-1);
+	
+	/* ------- */
+	/* Encrypt Message */
+	
+	unsigned char plain[512];
+	unsigned char cipher[512];
+	unsigned char decrypted[512];
+	memset(plain,0,512);
+	memset(cipher,0,512);
+	memset(decrypted,0,512);
+	
+	strncpy(plain, message, strlen(message));
+	/* TODO: Replace with key from DH */
+	size_t i;
+	unsigned char key[32];
+	for (i = 0; i < 32; i++) key[i] = i;
+	unsigned char iv[16];
+	for (i = 0; i < 16; i++) iv[i] = i;
+
+	// printf("key: %s\tiv: %s\n", key, iv);
+	// extern unsigned char key[32]; 
+	// extern unsigned char iv[16];
+	// printf("(extern) key: %s\tiv: %s\n", key, iv);
+
+	use_encrypt(plain, cipher, key, iv);
+	use_decrypt(cipher, decrypted, key, iv);   
+	printf("Message: %s [%d]\n", plain, strlen(plain));
+	printf("Ciphertext: %s [%d]\n", cipher, strlen(cipher));
+	printf("Decrypted: %s [%d]\n", decrypted, strlen(decrypted));
+  
 	/* XXX we should probably do the actual network stuff in a different
 	 * thread and have it call this once the message is actually sent. */
 	ssize_t nbytes;
@@ -178,6 +213,14 @@ static gboolean shownewmessage(gpointer msg)
 
 int main(int argc, char *argv[])
 {
+	// size_t temp_i;
+	// extern unsigned char key[32]; 
+	// extern unsigned char iv[16];
+	// printf("(main 1) key: %s\tiv: %s\n", key, iv);
+	// for (temp_i = 0; temp_i < 32; temp_i++) key[temp_i] = temp_i;
+	// for (temp_i = 0; temp_i < 16; temp_i++) iv[temp_i] = temp_i;
+	// printf("(main 2) key: %s\tiv: %s\n", key, iv);
+
 	if (init("params") != 0) {
 		fprintf(stderr, "could not read DH params from file 'params'\n");
 		return 1;
