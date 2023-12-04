@@ -75,6 +75,13 @@ static void use_encrypt(char* msg, unsigned char* ciph, unsigned char* k, unsign
 	if (1!=EVP_EncryptUpdate(ctx,ciph,&nWritten,(unsigned char*)msg,len))
 		ERR_print_errors_fp(stderr);
 	EVP_CIPHER_CTX_free(ctx);
+
+	// size_t ctlen = nWritten;
+	// printf("ciphertext of length %i:\n",nWritten);
+	// for (int i = 0; i < ctlen; i++) {
+	// 	printf("%02x",ciph[i]);
+	// }
+	// printf("\n");
 }
 
 static void use_decrypt(unsigned char* ciph, char* plain, unsigned char* k, unsigned char* iv)

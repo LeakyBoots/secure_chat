@@ -11,6 +11,7 @@
 #include "keys.h"
 
 #include "aes.c"
+#include "print_helper.c"
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
@@ -144,8 +145,10 @@ static void tsappend(char* message, char** tagnames, int ensurenewline)
 	gtk_text_buffer_delete_mark(tbuf,mark);
 }
 
-// unsigned char key[32];
-// unsigned char iv[16];
+/* ------- */
+unsigned char key[32];
+unsigned char iv[16];
+/* ------- */
 
 static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* data */)
 {
@@ -160,7 +163,6 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	
 	/* ------- */
 	/* Encrypt Message */
-	
 	unsigned char plain[512];
 	unsigned char cipher[512];
 	unsigned char decrypted[512];
@@ -170,34 +172,41 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	
 	strncpy(plain, message, strlen(message));
 	/* TODO: Replace with key from DH */
-	size_t i;
-	unsigned char key[32];
-	for (i = 0; i < 32; i++) key[i] = i;
-	unsigned char iv[16];
-	for (i = 0; i < 16; i++) iv[i] = i;
+	// size_t i;
+	// unsigned char key[32];
+	// for (i = 0; i < 32; i++) key[i] = i;
+	// unsigned char iv[16];
+	// for (i = 0; i < 16; i++) iv[i] = i;
 
-	// printf("key: %s\tiv: %s\n", key, iv);
-	// extern unsigned char key[32]; 
-	// extern unsigned char iv[16];
+	extern unsigned char key[32]; 
+	extern unsigned char iv[16];
 	// printf("(extern) key: %s\tiv: %s\n", key, iv);
 
 	use_encrypt(plain, cipher, key, iv);
-	use_decrypt(cipher, decrypted, key, iv);   
+	// use_decrypt(cipher, decrypted, key, iv);   
 	printf("Message: %s [%d]\n", plain, strlen(plain));
-	printf("Ciphertext: %s [%d]\n", cipher, strlen(cipher));
-	printf("Decrypted: %s [%d]\n", decrypted, strlen(decrypted));
-  
+	printf("(SEND) Ciphertext: %s [%d]\n", cipher, strlen(cipher));
+	// printf("Decrypted: %s [%d]\n", decrypted, strlen(decrypted));
+	// /* ------- */
+ 
+	
+
 	/* XXX we should probably do the actual network stuff in a different
 	 * thread and have it call this once the message is actually sent. */
 	ssize_t nbytes;
-	if ((nbytes = send(sockfd,message,len,0)) == -1)
+	// if ((nbytes = send(sockfd,message,len,0)) == -1)
+	if ((nbytes = send(sockfd,cipher,strlen(cipher),0)) == -1)
 		error("send failed");
+
+	memset(plain,0,512);
+	memset(cipher,0,512);
+	memset(decrypted,0,512);
 
 	tsappend(message,NULL,1);
 	free(message);
 	/* clear message text and reset focus */
 	gtk_text_buffer_delete(mbuf,&mstart,&mend);
-	gtk_widget_grab_focus(w);
+	gtk_widget_grab_focus(w);	
 }
 
 static gboolean shownewmessage(gpointer msg)
@@ -213,13 +222,15 @@ static gboolean shownewmessage(gpointer msg)
 
 int main(int argc, char *argv[])
 {
-	// size_t temp_i;
-	// extern unsigned char key[32]; 
-	// extern unsigned char iv[16];
-	// printf("(main 1) key: %s\tiv: %s\n", key, iv);
-	// for (temp_i = 0; temp_i < 32; temp_i++) key[temp_i] = temp_i;
-	// for (temp_i = 0; temp_i < 16; temp_i++) iv[temp_i] = temp_i;
-	// printf("(main 2) key: %s\tiv: %s\n", key, iv);
+	size_t temp_i;
+	extern unsigned char key[32]; 
+	extern unsigned char iv[16];
+	for (temp_i = 0; temp_i < 32; temp_i++) key[temp_i] = temp_i;
+	for (temp_i = 0; temp_i < 16; temp_i++) iv[temp_i] = temp_i;
+	// printf("(main) ");
+	// printf("key: "); print_unsigned_char_array(key);
+	// printf("iv: "); print_unsigned_char_array(iv);
+
 
 	if (init("params") != 0) {
 		fprintf(stderr, "could not read DH params from file 'params'\n");
@@ -332,11 +343,45 @@ void* recvMsg(void*)
 			 * side has disconnected. */
 			return 0;
 		}
+
+		/* ------- */
+		/* Decrypt Message */
+		unsigned char cipher[512];
+		unsigned char decrypted[512];
+		memset(cipher,0,512);
+		memset(decrypted,0,512);
+		
+		strncpy(cipher, msg, strlen(msg));
+		/* TODO: Replace with key from DH */
+		// size_t i;
+		// unsigned char key[32];
+		// for (i = 0; i < 32; i++) key[i] = i;
+		// unsigned char iv[16];
+		// for (i = 0; i < 16; i++) iv[i] = i;
+
+		extern unsigned char key[32]; 
+		extern unsigned char iv[16];
+		// printf("(extern) key: %s\tiv: %s\n", key, iv);
+
+		use_decrypt(cipher, decrypted, key, iv);   
+		printf("(REC)  Ciphertext: %s [%d]\n", cipher, strlen(cipher));
+		// printf("Decrypted: %s [%d]\n", decrypted, strlen(decrypted));
+		/* ------- */
+  
 		char* m = malloc(maxlen+2);
-		memcpy(m,msg,nbytes);
+		memcpy(m,decrypted,nbytes);
 		if (m[nbytes-1] != '\n')
 			m[nbytes++] = '\n';
 		m[nbytes] = 0;
+
+		memset(cipher,0,512);
+		memset(decrypted,0,512);
+		memset(msg,0,512);
+
+		// printf("m: %s [%d]\n",m , strlen(m));
+		printf("Decrypted: %s [%d]\n", m, strlen(m));
+
+
 		g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
 	}
 	return 0;
