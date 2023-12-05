@@ -66,6 +66,55 @@ int initServerNet(int port)
 	close(listensock);
 	fprintf(stderr, "connection made, starting session...\n");
 	/* at this point, should be able to send/recv on sockfd */
+	NEWZ(a);
+	NEWZ(A);
+	NEWZ(x);
+	NEWZ(X);
+	dhGen(a,A);
+	dhGen(x,X);
+	printf("Testing send.\n");
+	unsigned char *buffer = malloc(4096);
+	mpz_get_str(buffer, 10, A);
+	send(sockfd, buffer, 4096, 0);
+	memset(buffer, 0, 4096);
+	mpz_get_str(buffer, 10, X);
+	send(sockfd, buffer, 4096, 0);
+	memset(buffer, 0, 4096); 
+	size_t byteRecevied = recv(sockfd, buffer, 4096, 0);
+	if(byteRecevied == -1){
+		perror("Receive failed");
+		exit(EXIT_FAILURE);
+	}
+	NEWZ(B);
+	mpz_set_str(B, buffer, 10);
+	memset(buffer, 0, 4096);
+	byteRecevied = recv(sockfd, buffer, 4096, 0);
+	if(byteRecevied == -1){
+		perror("Receive failed");
+		exit(EXIT_FAILURE);
+	}
+	NEWZ(Y);
+	mpz_set_str(Y, buffer, 10);
+	unsigned char kA[128];
+	dh3Final(a,A,x,X,B,Y,kA, 128);
+	for (size_t i=0; i<128; i++){
+		printf("%02x", kA[i]);
+	} 
+	printf("\n");
+	send(sockfd, kA, 128, 0);
+	unsigned char *kB = malloc(128);
+	byteRecevied = recv(sockfd, kB, 128, 0);
+	if(byteRecevied == -1){
+		perror("Receive failed");
+		exit(EXIT_FAILURE);
+	}
+	if(memcmp(kA, kB, 128) == 0){
+		printf("Server and client share the same key. :D");
+	} else {
+		printf("Server and client have different keys. :(");
+		exit(EXIT_FAILURE);
+	}
+	free(buffer);
 	return 0;
 }
 
@@ -88,6 +137,55 @@ static int initClientNet(char* hostname, int port)
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
 		error("ERROR connecting");
 	/* at this point, should be able to send/recv on sockfd */
+	NEWZ(b);
+	NEWZ(B);
+	NEWZ(y);
+	NEWZ(Y);
+	dhGen(b,B);
+	dhGen(y,Y);
+	printf("Testing send.\n");
+	unsigned char *buffer = malloc(4096);
+	mpz_get_str(buffer, 10, B);
+	send(sockfd, buffer, 4096, 0);
+	memset(buffer, 0, 4096);
+	mpz_get_str(buffer, 10, Y);
+	send(sockfd, buffer, 4096, 0);
+	memset(buffer, 0, 4096);
+	size_t byteRecevied = recv(sockfd, buffer, 4096, 0);
+	if(byteRecevied == -1){
+		perror("Receive failed");
+		exit(EXIT_FAILURE);
+	}
+	NEWZ(A);
+	mpz_set_str(A, buffer, 10);
+	memset(buffer, 0, 4096);
+	byteRecevied = recv(sockfd, buffer, 4096, 0);
+	if(byteRecevied == -1){
+		perror("Receive failed");
+		exit(EXIT_FAILURE);
+	}
+	NEWZ(X);
+	mpz_set_str(X, buffer, 10);
+	unsigned char kB[128];
+	dh3Final(b,B,y,Y,A,X,kB, 128);
+	for (size_t i=0; i<128; i++){
+		printf("%02x", kB[i]);
+	} 
+	printf("\n");
+	send(sockfd, kB, 128, 0);
+	unsigned char *kA = malloc(128);
+	byteRecevied = recv(sockfd, kA, 128, 0);
+	if(byteRecevied == -1){
+		perror("Receive failed");
+		exit(EXIT_FAILURE);
+	}
+	if(memcmp(kA, kB, 128) == 0){
+		printf("Server and client share the same key. :D");
+	} else {
+		printf("Server and client have different keys. :(");
+		exit(EXIT_FAILURE);
+	}
+	free(buffer); 
 	return 0;
 }
 
