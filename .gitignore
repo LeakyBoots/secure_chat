@@ -2,3 +2,5 @@ chat/chat.o
 chat/dh.o
 chat/dh-example.o
 chat/keys.o
+chat/a.out
+.vscode/settings.json
