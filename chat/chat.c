@@ -17,6 +17,8 @@
 #define PATH_MAX 1024
 #endif
 
+unsigned char secret_key[128];
+
 static GtkTextBuffer* tbuf; /* transcript buffer */
 static GtkTextBuffer* mbuf; /* message buffer */
 static GtkTextView*  tview; /* view for transcript */
@@ -66,6 +68,9 @@ int initServerNet(int port)
 	close(listensock);
 	fprintf(stderr, "connection made, starting session...\n");
 	/* at this point, should be able to send/recv on sockfd */
+	extern unsigned char secret_key[128];
+
+	
 	NEWZ(a);
 	NEWZ(A);
 	NEWZ(x);
@@ -110,6 +115,13 @@ int initServerNet(int port)
 	}
 	if(memcmp(kA, kB, 128) == 0){
 		printf("Server and client share the same key. :D");
+		memcpy(secret_key, kA, 128);
+		printf("From Server: kA size: %d\n", strlen(kA));
+		print_unsigned_char_array(kA);
+		printf("From Server: kB size: %d\n", strlen(kB));
+		print_unsigned_char_array(kB);
+		printf("From Server size: %d\n", strlen(secret_key));
+		print_unsigned_char_array(secret_key);
 	} else {
 		printf("Server and client have different keys. :(");
 		exit(EXIT_FAILURE);
@@ -137,6 +149,9 @@ static int initClientNet(char* hostname, int port)
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
 		error("ERROR connecting");
 	/* at this point, should be able to send/recv on sockfd */
+	extern unsigned char secret_key[128];
+	// extern unsigned char* secret_key;
+	
 	NEWZ(b);
 	NEWZ(B);
 	NEWZ(y);
@@ -181,6 +196,13 @@ static int initClientNet(char* hostname, int port)
 	}
 	if(memcmp(kA, kB, 128) == 0){
 		printf("Server and client share the same key. :D");
+		memcpy(secret_key, kB, 128);
+		printf("From Client: kA size: %d\n", strlen(kA));
+		print_unsigned_char_array(kA);
+		printf("From Client: kB size: %d\n", strlen(kB));
+		print_unsigned_char_array(kB);
+		printf("From Client size: %d\n", strlen(secret_key));
+		print_unsigned_char_array(secret_key);
 	} else {
 		printf("Server and client have different keys. :(");
 		exit(EXIT_FAILURE);
@@ -280,7 +302,9 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	extern unsigned char iv[16];
 	// printf("(extern) key: %s\tiv: %s\n", key, iv);
 
-	use_encrypt(plain, cipher, key, iv);
+	// use_encrypt(plain, cipher, key, iv);
+	use_encrypt(plain, cipher, secret_key, iv);
+
 	// use_decrypt(cipher, decrypted, key, iv);   
 	printf("Message: %s [%d]\n", plain, strlen(plain));
 	printf("(SEND) Ciphertext: %s [%d]\n", cipher, strlen(cipher));
@@ -461,7 +485,10 @@ void* recvMsg(void*)
 		extern unsigned char iv[16];
 		// printf("(extern) key: %s\tiv: %s\n", key, iv);
 
-		use_decrypt(cipher, decrypted, key, iv);   
+		// use_decrypt(cipher, decrypted, key, iv);  
+		use_decrypt(cipher, decrypted, secret_key, iv);  
+
+
 		printf("(REC)  Ciphertext: %s [%d]\n", cipher, strlen(cipher));
 		// printf("Decrypted: %s [%d]\n", decrypted, strlen(decrypted));
 		/* ------- */
