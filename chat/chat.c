@@ -70,14 +70,13 @@ int initServerNet(int port)
 	/* at this point, should be able to send/recv on sockfd */
 	extern unsigned char secret_key[128];
 
-	
 	NEWZ(a);
 	NEWZ(A);
 	NEWZ(x);
 	NEWZ(X);
 	dhGen(a,A);
 	dhGen(x,X);
-	printf("Testing send.\n");
+	// printf("Testing send.\n");
 	unsigned char *buffer = malloc(4096);
 	mpz_get_str(buffer, 10, A);
 	send(sockfd, buffer, 4096, 0);
@@ -102,9 +101,9 @@ int initServerNet(int port)
 	mpz_set_str(Y, buffer, 10);
 	unsigned char kA[128];
 	dh3Final(a,A,x,X,B,Y,kA, 128);
-	for (size_t i=0; i<128; i++){
-		printf("%02x", kA[i]);
-	} 
+	// for (size_t i=0; i<128; i++){
+	// 	printf("%02x", kA[i]);
+	// } 
 	printf("\n");
 	send(sockfd, kA, 128, 0);
 	unsigned char *kB = malloc(128);
@@ -116,12 +115,12 @@ int initServerNet(int port)
 	if(memcmp(kA, kB, 128) == 0){
 		printf("Server and client share the same key. :D");
 		memcpy(secret_key, kA, 128);
-		printf("From Server: kA size: %d\n", strlen(kA));
-		print_unsigned_char_array(kA);
-		printf("From Server: kB size: %d\n", strlen(kB));
-		print_unsigned_char_array(kB);
-		printf("From Server size: %d\n", strlen(secret_key));
-		print_unsigned_char_array(secret_key);
+		// printf("From Server: kA size: %d\n", strlen(kA));
+		// print_unsigned_char_array(kA);
+		// printf("From Server: kB size: %d\n", strlen(kB));
+		// print_unsigned_char_array(kB);
+		// printf("From Server size: %d\n", strlen(secret_key));
+		// print_unsigned_char_array(secret_key);
 	} else {
 		printf("Server and client have different keys. :(");
 		exit(EXIT_FAILURE);
@@ -158,7 +157,7 @@ static int initClientNet(char* hostname, int port)
 	NEWZ(Y);
 	dhGen(b,B);
 	dhGen(y,Y);
-	printf("Testing send.\n");
+	// printf("Testing send.\n");
 	unsigned char *buffer = malloc(4096);
 	mpz_get_str(buffer, 10, B);
 	send(sockfd, buffer, 4096, 0);
@@ -183,9 +182,9 @@ static int initClientNet(char* hostname, int port)
 	mpz_set_str(X, buffer, 10);
 	unsigned char kB[128];
 	dh3Final(b,B,y,Y,A,X,kB, 128);
-	for (size_t i=0; i<128; i++){
-		printf("%02x", kB[i]);
-	} 
+	// for (size_t i=0; i<128; i++){
+	// 	printf("%02x", kB[i]);
+	// } 
 	printf("\n");
 	send(sockfd, kB, 128, 0);
 	unsigned char *kA = malloc(128);
@@ -195,14 +194,14 @@ static int initClientNet(char* hostname, int port)
 		exit(EXIT_FAILURE);
 	}
 	if(memcmp(kA, kB, 128) == 0){
-		printf("Server and client share the same key. :D");
+		// printf("Server and client share the same key. :D");
 		memcpy(secret_key, kB, 128);
-		printf("From Client: kA size: %d\n", strlen(kA));
-		print_unsigned_char_array(kA);
-		printf("From Client: kB size: %d\n", strlen(kB));
-		print_unsigned_char_array(kB);
-		printf("From Client size: %d\n", strlen(secret_key));
-		print_unsigned_char_array(secret_key);
+		// printf("From Client: kA size: %d\n", strlen(kA));
+		// print_unsigned_char_array(kA);
+		// printf("From Client: kB size: %d\n", strlen(kB));
+		// print_unsigned_char_array(kB);
+		// printf("From Client size: %d\n", strlen(secret_key));
+		// print_unsigned_char_array(secret_key);
 	} else {
 		printf("Server and client have different keys. :(");
 		exit(EXIT_FAILURE);
@@ -306,13 +305,11 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	use_encrypt(plain, cipher, secret_key, iv);
 
 	// use_decrypt(cipher, decrypted, key, iv);   
-	printf("Message: %s [%d]\n", plain, strlen(plain));
-	printf("(SEND) Ciphertext: %s [%d]\n", cipher, strlen(cipher));
+	// printf("Message: %s [%d]\n", plain, strlen(plain));
+	// printf("(SEND) Ciphertext: %s [%d]\n", cipher, strlen(cipher));
 	// printf("Decrypted: %s [%d]\n", decrypted, strlen(decrypted));
 	// /* ------- */
  
-	
-
 	/* XXX we should probably do the actual network stuff in a different
 	 * thread and have it call this once the message is actually sent. */
 	ssize_t nbytes;
@@ -352,7 +349,6 @@ int main(int argc, char *argv[])
 	// printf("(main) ");
 	// printf("key: "); print_unsigned_char_array(key);
 	// printf("iv: "); print_unsigned_char_array(iv);
-
 
 	if (init("params") != 0) {
 		fprintf(stderr, "could not read DH params from file 'params'\n");
@@ -489,7 +485,7 @@ void* recvMsg(void*)
 		use_decrypt(cipher, decrypted, secret_key, iv);  
 
 
-		printf("(REC)  Ciphertext: %s [%d]\n", cipher, strlen(cipher));
+		// printf("(REC)  Ciphertext: %s [%d]\n", cipher, strlen(cipher));
 		// printf("Decrypted: %s [%d]\n", decrypted, strlen(decrypted));
 		/* ------- */
   
@@ -504,7 +500,7 @@ void* recvMsg(void*)
 		memset(msg,0,512);
 
 		// printf("m: %s [%d]\n",m , strlen(m));
-		printf("Decrypted: %s [%d]\n", m, strlen(m));
+		// printf("Decrypted: %s [%d]\n", m, strlen(m));
 
 
 		g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
